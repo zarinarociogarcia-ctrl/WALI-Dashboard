@@ -1,1 +1,12 @@
-
+{
+    "fecha_procesamiento": "2026-08-03 10:30:17",
+    "total_eventos_riesgo": 20,
+    "eventos_criticos_menos_1m": 9,
+    "eventos_altos_1m_a_1_5m": 11,
+    "distancia_minima_promedio_cm": 104.66,
+    "dispositivos_con_eventos": 3,
+    "umbral_riesgo_cm": 150,
+    "umbral_critico_cm": 100,
+    "script": "02_deteccion_eventos.py",
+    "version": "1.1.0"
+}
