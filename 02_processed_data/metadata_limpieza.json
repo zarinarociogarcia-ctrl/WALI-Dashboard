@@ -1,16 +1,18 @@
 {
-    "fecha_procesamiento": "2026-08-03 10:30:16",
-    "archivos_procesados": 1,
+    "fecha_procesamiento": "2026-08-03 11:53:55",
+    "archivos_procesados": 3,
     "nombres_archivos": [
-        "wali_datos_realistas.csv"
+        "wali_Av_España.csv",
+        "wali_Av_Ignacio_de_la_Roza.csv",
+        "wali_Av_Libertador.csv"
     ],
-    "registros_entrada": 756,
-    "registros_salida": 670,
-    "outliers_removidos": 26,
-    "falsos_positivos_por_parada": 60,
+    "registros_entrada": 1340,
+    "registros_salida": 1180,
+    "outliers_removidos": 45,
+    "falsos_positivos_por_parada": 115,
     "nans_removidos": 0,
-    "tasa_perdida_datos_porcentaje": 3.44,
-    "km_totales_escaneados": 11.28,
+    "tasa_perdida_datos_porcentaje": 3.36,
+    "km_totales_escaneados": 17.0,
     "parametros_usados": {
         "outlier_min_cm": 10,
         "outlier_max_cm": 300,
