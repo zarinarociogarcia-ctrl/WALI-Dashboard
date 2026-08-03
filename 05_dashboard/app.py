@@ -1,4 +1,6 @@
 import os
+import sys
+import subprocess
 import pandas as pd
 import json
 import streamlit as st
@@ -17,28 +19,55 @@ st.set_page_config(
 )
 
 # ==========================================
-# CONFIGURACIÓN DE RUTAS (Para funcionar en Local y en Nube)
+# CONFIGURACIÓN DE RUTAS
 # ==========================================
-# Obtiene la carpeta donde está el app.py
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(CURRENT_DIR) # Sube un nivel a la raíz del repo
 
 PROCESSED_DATA = os.path.join(PROJECT_ROOT, "02_processed_data")
 AGGREGATED_DATA = os.path.join(PROJECT_ROOT, "03_aggregated_data")
 
+# Asegurar que las carpetas existan en la nube
+os.makedirs(PROCESSED_DATA, exist_ok=True)
+os.makedirs(AGGREGATED_DATA, exist_ok=True)
+
+# ==========================================
+# INICIALIZACIÓN AUTOMÁTICA (Clave para la Nube)
+# ==========================================
+def inicializar_datos():
+    """Verifica si los datos existen. Si no, ejecuta el pipeline automáticamente."""
+    metadata_path = os.path.join(PROCESSED_DATA, "metadata_limpieza.json")
+    
+    if not os.path.exists(metadata_path):
+        st.warning("⚠️ Datos procesados no encontrados. Generando datos y ejecutando pipeline en la nube...")
+        
+        gen_script = os.path.join(PROJECT_ROOT, "generar_datos_realistas.py")
+        pipeline_script = os.path.join(PROJECT_ROOT, "run_pipeline.py")
+        
+        try:
+            # 1. Generar datos sintéticos realistas
+            subprocess.run([sys.executable, gen_script], check=True, cwd=PROJECT_ROOT)
+            # 2. Ejecutar el pipeline de limpieza y eventos
+            subprocess.run([sys.executable, pipeline_script], check=True, cwd=PROJECT_ROOT)
+            st.success("✅ Pipeline completado exitosamente en la nube.")
+        except subprocess.CalledProcessError as e:
+            st.error(f"❌ Error al ejecutar el pipeline: {e}")
+            st.stop()
+
+# Ejecutar la inicialización antes de cargar nada
+inicializar_datos()
+
 # ==========================================
 # CARGA DE DATOS
 # ==========================================
 @st.cache_data
 def cargar_datos():
-    # Cargar KPIs y Metadata
     with open(os.path.join(PROCESSED_DATA, "metadata_limpieza.json"), "r", encoding="utf-8") as f:
         metadata = json.load(f)
     
     with open(os.path.join(AGGREGATED_DATA, "kpis_eventos.json"), "r", encoding="utf-8") as f:
         kpis_eventos = json.load(f)
     
-    # Cargar DataFrames
     df_procesado = pd.read_parquet(os.path.join(PROCESSED_DATA, "datos_procesados.parquet"))
     df_eventos = pd.read_parquet(os.path.join(AGGREGATED_DATA, "eventos_riesgo.parquet"))
     
@@ -49,7 +78,6 @@ metadata, kpis_eventos, df_procesado, df_eventos = cargar_datos()
 # ==========================================
 # BARRA LATERAL (Navegación)
 # ==========================================
-st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2972/2972185.png", width=80)
 st.sidebar.title("🚴 Dashboard WALI")
 st.sidebar.markdown("**Sistema de Monitoreo de Distancia Lateral**")
 st.sidebar.markdown("---")
@@ -65,7 +93,7 @@ st.sidebar.info(f"Última actualización:\n{metadata['fecha_procesamiento']}")
 # ==========================================
 # VISTA 1: RESUMEN EJECUTIVO (B2G)
 # ==========================================
-if vista == "📊 1. Resumen Ejecutivo (B2G)":
+if vista == " 1. Resumen Ejecutivo (B2G)":
     st.title("📊 Resumen Ejecutivo: Impacto del Piloto WALI")
     st.markdown("Métricas clave para la toma de decisiones en seguridad vial y planificación urbana.")
     
@@ -116,7 +144,7 @@ if vista == "📊 1. Resumen Ejecutivo (B2G)":
 # ==========================================
 # VISTA 2: CONTROL TÉCNICO
 # ==========================================
-elif vista == "⚙️ 2. Control Técnico":
+elif vista == "️ 2. Control Técnico":
     st.title("⚙️ Control Técnico y Calidad de Datos")
     st.markdown("Métricas de funcionamiento del hardware y calidad del pipeline de datos.")
     
@@ -153,7 +181,6 @@ elif vista == "⚙️ 2. Control Técnico":
                             labels={"distancia_lateral_cm": "Distancia (cm)"},
                             color_discrete_sequence=["#1f77b4"])
     
-    # Líneas de referencia
     fig_hist.add_vline(x=100, line_dash="dash", line_color="red", annotation_text="Crítico (<1m)")
     fig_hist.add_vline(x=150, line_dash="dash", line_color="orange", annotation_text="Umbral de Riesgo (1.5m)")
     st.plotly_chart(fig_hist, use_container_width=True)
@@ -165,7 +192,6 @@ elif vista == "🗺️ 3. Mapa de Riesgo Geoespacial":
     st.title("🗺️ Mapa de Riesgo Geoespacial")
     st.markdown("Visualización de los eventos de riesgo detectados sobre la red vial.")
     
-    # Filtro por dispositivo
     dispositivos = df_eventos['device_id'].unique().tolist()
     disp_seleccionado = st.selectbox("Filtrar por dispositivo:", ["Todos"] + dispositivos)
     
@@ -176,21 +202,40 @@ elif vista == "🗺️ 3. Mapa de Riesgo Geoespacial":
 
     st.markdown("---")
     
-    # Crear mapa base centrado en San Juan, Argentina
-    m = folium.Map(location=[-31.5375, -68.5364], zoom_start=14, tiles="CartoDB dark_matter")
+    # Centrar el mapa dinámicamente
+    if len(df_mapa) > 0:
+        centro_lat = df_mapa['lat_promedio'].mean()
+        centro_lon = df_mapa['lon_promedio'].mean()
+    else:
+        centro_lat, centro_lon = -31.534, -68.525 # Centro aprox de los datos reales
+
+    m = folium.Map(location=[centro_lat, centro_lon], zoom_start=15, tiles="CartoDB dark_matter")
     
+    # Dibujar trayectoria
+    if len(df_procesado) > 0:
+        # Tomamos un solo dispositivo para dibujar la línea base y no saturar
+        df_uno = df_procesado[df_procesado['device_id'] == df_procesado['device_id'].iloc[0]]
+        trayectoria = [[row['lat'], row['lon']] for _, row in df_uno.iterrows()]
+        folium.PolyLine(
+            locations=trayectoria,
+            color="#3498db",
+            weight=4,
+            opacity=0.7,
+            tooltip="Trayectoria del ciclista (WALI-001)"
+        ).add_to(m)
+
     # Agregar marcadores de eventos
     for idx, row in df_mapa.iterrows():
         if row['distancia_minima_cm'] < 100:
-            color = "red"
+            color = "#e74c3c" # Rojo
             riesgo = "CRÍTICO"
         else:
-            color = "orange"
+            color = "#f39c12" # Naranja
             riesgo = "ALTO"
             
         folium.CircleMarker(
             location=[row['lat_promedio'], row['lon_promedio']],
-            radius=6,
+            radius=7,
             color=color,
             fill=True,
             fillColor=color,
@@ -199,13 +244,13 @@ elif vista == "🗺️ 3. Mapa de Riesgo Geoespacial":
             tooltip=f"{riesgo}: {row['distancia_minima_cm']:.0f} cm"
         ).add_to(m)
 
-    # Mostrar mapa en Streamlit
     st_folium(m, width=1000, height=600)
     
     st.markdown("""
     > **Leyenda del Mapa:**
     > - 🔴 **Puntos Rojos:** Eventos críticos (distancia < 1.0 m). Riesgo inminente de colisión.
-    > - 🟠 **Puntos Naranjas:** Eventos de riesgo alto (1.0 m a 1.5 m). Incumplimiento de la distancia de sobrepaso seguro.
+    > -  **Puntos Naranjas:** Eventos de riesgo alto (1.0 m a 1.5 m). Incumplimiento de la distancia de sobrepaso seguro.
+    > - 🔵 **Línea Azul:** Trayectoria registrada por el dispositivo.
     """)
 
 # ==========================================
