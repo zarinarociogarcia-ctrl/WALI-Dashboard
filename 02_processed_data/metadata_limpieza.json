@@ -1,1 +1,22 @@
-
+{
+    "fecha_procesamiento": "2026-08-03 10:30:16",
+    "archivos_procesados": 1,
+    "nombres_archivos": [
+        "wali_datos_realistas.csv"
+    ],
+    "registros_entrada": 756,
+    "registros_salida": 670,
+    "outliers_removidos": 26,
+    "falsos_positivos_por_parada": 60,
+    "nans_removidos": 0,
+    "tasa_perdida_datos_porcentaje": 3.44,
+    "km_totales_escaneados": 11.28,
+    "parametros_usados": {
+        "outlier_min_cm": 10,
+        "outlier_max_cm": 300,
+        "velocidad_min_movimiento_kmh": 3.0,
+        "radio_tierra_km": 6371.0
+    },
+    "script": "01_limpieza.py",
+    "version": "1.3.0"
+}
