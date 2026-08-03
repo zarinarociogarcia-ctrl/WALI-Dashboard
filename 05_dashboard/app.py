@@ -17,10 +17,12 @@ st.set_page_config(
 )
 
 # ==========================================
-# CONFIGURACIÓN DE RUTAS
+# CONFIGURACIÓN DE RUTAS (Para funcionar en Local y en Nube)
 # ==========================================
-# Asumimos que se ejecuta desde la raíz del proyecto
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Obtiene la carpeta donde está el app.py
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(CURRENT_DIR) # Sube un nivel a la raíz del repo
+
 PROCESSED_DATA = os.path.join(PROJECT_ROOT, "02_processed_data")
 AGGREGATED_DATA = os.path.join(PROJECT_ROOT, "03_aggregated_data")
 
